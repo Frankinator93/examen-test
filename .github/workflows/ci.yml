@@ -54,4 +54,23 @@ jobs:
       - name: Build et Push de l'image
         run: |
           docker build -t ${{ secrets.DOCKER_USERNAME }}/node-app:latest .
-          docker push ${{ secrets.DOCKER_USERNAME }}/node-app:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/node-app:latest .
+
+          # --- PARTIE 3 : SÉCURITÉ (SCAN TRIVY) ---
+  security:
+    name: Scan Image Security (Trivy)
+    runs-on: ubuntu-latest
+    needs: docker # S'exécute après le job docker
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+
+    steps:
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          # On scanne l'image qui vient d'être envoyée sur le Docker Hub
+          image-ref: '${{ secrets.DOCKER_USERNAME }}/node-app:latest'
+          format: 'table'
+          # Détection des vulnérabilités élevées et critiques uniquement
+          severity: 'HIGH,CRITICAL'
+          # Fait échouer le pipeline si des failles sont trouvées
+          exit-code: '1'
